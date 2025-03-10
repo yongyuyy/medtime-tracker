@@ -7,14 +7,17 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Plus, Users, UserPlus, Clock, Calendar } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
+import TeamDetails from '@/components/team/TeamDetails';
 
 const Teams = () => {
   const { user, groups, createGroup, joinGroup } = useAuth();
   
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isJoinDialogOpen, setIsJoinDialogOpen] = useState(false);
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   
   // Create group form state
   const [newGroupName, setNewGroupName] = useState('');
@@ -49,6 +52,8 @@ const Teams = () => {
     setJoinGroupId('');
     setJoinPasscode('');
   };
+  
+  const selectedGroup = groups.find(g => g.id === selectedGroupId);
   
   return (
     <div className="page-container">
@@ -197,9 +202,25 @@ const Teams = () => {
                       <div className="text-xs text-muted-foreground">
                         Team ID: {group.id}
                       </div>
-                      <Button size="sm" variant="outline">
-                        View Details
-                      </Button>
+                      <Sheet>
+                        <SheetTrigger asChild>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => setSelectedGroupId(group.id)}
+                          >
+                            View Details
+                          </Button>
+                        </SheetTrigger>
+                        <SheetContent className="sm:max-w-lg">
+                          {selectedGroup && (
+                            <TeamDetails 
+                              group={selectedGroup}
+                              onClose={() => setSelectedGroupId(null)}
+                            />
+                          )}
+                        </SheetContent>
+                      </Sheet>
                     </div>
                   </CardContent>
                 </Card>

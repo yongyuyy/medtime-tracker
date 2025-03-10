@@ -18,7 +18,9 @@ import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/auth/Login";
 import Signup from "./pages/auth/Signup";
+import ForgotPassword from "./pages/auth/ForgotPassword";
 import Teams from "./pages/Teams";
+import Profile from "./pages/Profile";
 
 const queryClient = new QueryClient();
 
@@ -45,6 +47,7 @@ const AppRoutes = () => {
       {/* Auth routes */}
       <Route path="/auth/login" element={<Login />} />
       <Route path="/auth/signup" element={<Signup />} />
+      <Route path="/auth/forgot-password" element={<ForgotPassword />} />
       
       {/* Protected routes */}
       <Route path="/" element={
@@ -92,6 +95,15 @@ const AppRoutes = () => {
           <Navbar />
           <main className="flex-1">
             <Settings />
+          </main>
+        </ProtectedRoute>
+      } />
+
+      <Route path="/profile" element={
+        <ProtectedRoute>
+          <Navbar />
+          <main className="flex-1">
+            <Profile />
           </main>
         </ProtectedRoute>
       } />

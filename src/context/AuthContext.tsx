@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { toast } from 'sonner';
 
@@ -9,6 +8,7 @@ export interface User {
   role: string;
   department?: string;
   groupIds?: string[];
+  profileImage?: string;
 }
 
 export interface Group {
@@ -18,6 +18,7 @@ export interface Group {
   department: string;
   createdBy: string;
   members: User[];
+  createdAt: string;
 }
 
 interface AuthState {
@@ -34,6 +35,7 @@ interface AuthContextType extends AuthState {
   createGroup: (name: string, department: string, passcode: string) => Promise<void>;
   joinGroup: (groupId: string, passcode: string) => Promise<void>;
   leaveGroup: (groupId: string) => Promise<void>;
+  deleteGroup: (groupId: string) => Promise<void>;
   updateProfile: (userData: Partial<User>) => Promise<void>;
 }
 
@@ -66,7 +68,8 @@ const MOCK_GROUPS: Group[] = [
     passcode: '123456',
     department: 'Cardiology',
     createdBy: 'user-1',
-    members: MOCK_USERS
+    members: MOCK_USERS,
+    createdAt: '2025-01-15T12:00:00Z'
   }
 ];
 
@@ -203,7 +206,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         department,
         passcode,
         createdBy: state.user.id,
-        members: [state.user]
+        members: [state.user],
+        createdAt: new Date().toISOString()
       };
       
       // Add to mock groups (for demo)
@@ -327,6 +331,64 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const deleteGroup = async (groupId: string) => {
+    if (!state.user) {
+      toast.error('You must be logged in to delete a group');
+      return;
+    }
+    
+    try {
+      // Simulate API call
+      setState(prev => ({ ...prev, isLoading: true }));
+      
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Find group
+      const group = MOCK_GROUPS.find(g => g.id === groupId);
+      
+      if (!group) {
+        throw new Error('Group not found');
+      }
+      
+      // Check if user is the creator
+      if (group.createdBy !== state.user.id) {
+        throw new Error('Only the group creator can delete this group');
+      }
+      
+      // Remove group from all members
+      group.members.forEach(member => {
+        const userToUpdate = MOCK_USERS.find(u => u.id === member.id);
+        if (userToUpdate) {
+          userToUpdate.groupIds = userToUpdate.groupIds?.filter(id => id !== groupId);
+        }
+      });
+      
+      // Remove group from mock groups
+      const groupIndex = MOCK_GROUPS.findIndex(g => g.id === groupId);
+      if (groupIndex !== -1) {
+        MOCK_GROUPS.splice(groupIndex, 1);
+      }
+      
+      // Update user's groups
+      const updatedUser = {
+        ...state.user,
+        groupIds: (state.user.groupIds || []).filter(id => id !== groupId)
+      };
+      
+      setState(prev => ({
+        ...prev,
+        user: updatedUser,
+        groups: prev.groups.filter(g => g.id !== groupId),
+        isLoading: false
+      }));
+      
+      toast.success(`Group "${group.name}" deleted successfully`);
+    } catch (error) {
+      toast.error('Failed to delete group: ' + (error as Error).message);
+      setState(prev => ({ ...prev, isLoading: false }));
+    }
+  };
+
   const updateProfile = async (userData: Partial<User>) => {
     if (!state.user) {
       toast.error('You must be logged in to update your profile');
@@ -366,6 +428,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       createGroup,
       joinGroup,
       leaveGroup,
+      deleteGroup,
       updateProfile
     }}>
       {children}

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { format, parseISO, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import { CalendarIcon, Edit2, Plus, Trash2, CalendarRange } from 'lucide-react';
@@ -24,7 +23,6 @@ const History = () => {
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [filterType, setFilterType] = useState<'single' | 'range' | 'all'>('all');
   
-  // Edit entry state
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState<TimeEntry | null>(null);
   const [editDate, setEditDate] = useState<Date | undefined>(undefined);
@@ -32,7 +30,6 @@ const History = () => {
   const [editTimeOut, setEditTimeOut] = useState('');
   const [editNotes, setEditNotes] = useState('');
   
-  // Filter entries based on selected filter type
   useEffect(() => {
     let filtered = [...entries];
     
@@ -46,23 +43,19 @@ const History = () => {
         if (dateRange.from && dateRange.to) {
           return isWithinInterval(entryDate, { start: dateRange.from, end: dateRange.to });
         } else if (dateRange.from) {
-          // If only from date is selected, match that exact date
           return format(entryDate, 'yyyy-MM-dd') === format(dateRange.from, 'yyyy-MM-dd');
         }
         return true;
       });
     }
     
-    // Sort filtered entries by date (newest first)
     const sortedEntries = filtered.sort((a, b) => {
-      // Sort by date descending
       return new Date(b.date).getTime() - new Date(a.date).getTime();
     });
     
     setFilteredEntries(sortedEntries);
   }, [entries, selectedDate, dateRange, filterType]);
   
-  // Handle quick filter selection
   const handleQuickFilter = (type: string) => {
     const today = new Date();
     
@@ -96,7 +89,6 @@ const History = () => {
     }
   };
   
-  // Get display text for filter
   const getFilterDisplayText = () => {
     if (filterType === 'single' && selectedDate) {
       return format(selectedDate, 'PPP');
@@ -109,7 +101,6 @@ const History = () => {
     return 'All entries';
   };
   
-  // Handle edit button click
   const handleEditClick = (entry: TimeEntry) => {
     setEditingEntry(entry);
     setEditDate(parseISO(entry.date));
@@ -119,7 +110,6 @@ const History = () => {
     setIsEditDialogOpen(true);
   };
   
-  // Handle save edit
   const handleSaveEdit = () => {
     if (editingEntry && editDate) {
       updateEntry(editingEntry.id, {
@@ -134,7 +124,6 @@ const History = () => {
     }
   };
   
-  // Handle delete confirmation
   const handleDelete = (id: string) => {
     if (window.confirm('Are you sure you want to delete this entry?')) {
       deleteEntry(id);
@@ -146,7 +135,6 @@ const History = () => {
       <h1 className="page-title">History</h1>
       <p className="page-subtitle">View and manage your time entries</p>
       
-      {/* Date filter and add entry button */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
           <Select
@@ -272,7 +260,6 @@ const History = () => {
         <ManualEntryDialog />
       </div>
       
-      {/* Entries table */}
       <div className="bg-white dark:bg-slate-900 rounded-xl overflow-hidden border">
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -339,7 +326,6 @@ const History = () => {
         </div>
       </div>
       
-      {/* Edit Entry Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="sm:max-w-[425px] animate-scale-up">
           <DialogHeader>

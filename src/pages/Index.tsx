@@ -1,23 +1,37 @@
+
 import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { useTimeEntries } from '@/context/TimeEntriesContext';
 import TimeDisplay from '@/components/ui-components/TimeDisplay';
-import EntryCard from '@/components/ui-components/EntryCard';
 import ManualEntryDialog from '@/components/ui-components/ManualEntryDialog';
 import ActivityCalendar from '@/components/ActivityCalendar';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
 import { toast } from 'sonner';
 import { formatTime, formatDurationCompact } from '@/utils/timeUtils';
-import { Clock, Edit2, Trash2 } from 'lucide-react';
+import { Clock, Edit2, Trash2, CalendarIcon } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { TimeEntry } from '@/types';
 
 const Index = () => {
-  const { entries, activeTimerId, startTimer, stopTimer, deleteEntry, deleteAllEntries } = useTimeEntries();
+  const { entries, activeTimerId, startTimer, stopTimer, deleteEntry, deleteAllEntries, updateEntry } = useTimeEntries();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isClockOutDialogOpen, setIsClockOutDialogOpen] = useState(false);
   const [clockOutNotes, setClockOutNotes] = useState('');
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  
+  // Edit entry state
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingEntry, setEditingEntry] = useState<TimeEntry | null>(null);
+  const [editDate, setEditDate] = useState<Date | undefined>(undefined);
+  const [editTimeIn, setEditTimeIn] = useState('');
+  const [editTimeOut, setEditTimeOut] = useState('');
+  const [editNotes, setEditNotes] = useState('');
   
   const activeEntry = entries.find(entry => entry.id === activeTimerId);
   
@@ -60,6 +74,31 @@ const Index = () => {
     
     const totalMinutes = todayEntries.reduce((total, entry) => total + entry.duration, 0);
     return Math.floor(totalMinutes / 60);
+  };
+  
+  // Handle edit button click
+  const handleEditClick = (entry: TimeEntry) => {
+    setEditingEntry(entry);
+    setEditDate(new Date(entry.date));
+    setEditTimeIn(entry.timeIn);
+    setEditTimeOut(entry.timeOut);
+    setEditNotes(entry.notes || '');
+    setIsEditDialogOpen(true);
+  };
+  
+  // Handle save edit
+  const handleSaveEdit = () => {
+    if (editingEntry && editDate) {
+      updateEntry(editingEntry.id, {
+        date: format(editDate, 'yyyy-MM-dd'),
+        timeIn: editTimeIn,
+        timeOut: editTimeOut,
+        notes: editNotes.trim() || undefined,
+      });
+      
+      setIsEditDialogOpen(false);
+      setEditingEntry(null);
+    }
   };
   
   return (
@@ -162,6 +201,14 @@ const Index = () => {
                       variant="ghost" 
                       size="icon" 
                       className="h-8 w-8" 
+                      onClick={() => handleEditClick(entry)}
+                    >
+                      <Edit2 className="h-4 w-4" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-8 w-8" 
                       onClick={() => deleteEntry(entry.id)}
                     >
                       <Trash2 className="h-4 w-4" />
@@ -221,6 +268,88 @@ const Index = () => {
             </Button>
             <Button variant="destructive" onClick={confirmDeleteAll}>
               Delete All
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Edit Entry Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-[425px] animate-scale-up">
+          <DialogHeader>
+            <DialogTitle>Edit Time Entry</DialogTitle>
+            <DialogDescription>
+              Make changes to your time entry.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="edit-date">Date</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    id="edit-date"
+                    variant="outline"
+                    className={cn(
+                      "justify-start text-left font-normal",
+                      !editDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {editDate ? format(editDate, 'PPP') : <span>Pick a date</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={editDate}
+                    onSelect={(date) => date && setEditDate(date)}
+                    initialFocus
+                    className="p-3 pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="edit-time-in">Time In</Label>
+                <Input
+                  id="edit-time-in"
+                  type="time"
+                  value={editTimeIn}
+                  onChange={(e) => setEditTimeIn(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-time-out">Time Out</Label>
+                <Input
+                  id="edit-time-out"
+                  type="time"
+                  value={editTimeOut}
+                  onChange={(e) => setEditTimeOut(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="edit-notes">Notes (Optional)</Label>
+              <Textarea
+                id="edit-notes"
+                placeholder="Add any additional information..."
+                value={editNotes}
+                onChange={(e) => setEditNotes(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveEdit}>
+              Save Changes
             </Button>
           </DialogFooter>
         </DialogContent>
