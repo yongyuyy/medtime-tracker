@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { useTimeEntries } from '@/context/TimeEntriesContext';
@@ -10,12 +11,14 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { formatTime, formatDurationCompact } from '@/utils/timeUtils';
+import { Clock, Edit2, Trash2 } from 'lucide-react';
 
 const Index = () => {
-  const { entries, activeTimerId, startTimer, stopTimer, deleteEntry } = useTimeEntries();
+  const { entries, activeTimerId, startTimer, stopTimer, deleteEntry, deleteAllEntries } = useTimeEntries();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isClockOutDialogOpen, setIsClockOutDialogOpen] = useState(false);
   const [clockOutNotes, setClockOutNotes] = useState('');
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   
   const activeEntry = entries.find(entry => entry.id === activeTimerId);
   
@@ -45,6 +48,11 @@ const Index = () => {
     setIsClockOutDialogOpen(false);
   };
   
+  const confirmDeleteAll = () => {
+    deleteAllEntries();
+    setDeleteConfirmOpen(false);
+  };
+  
   const getTodayHours = () => {
     const today = new Date().toISOString().split('T')[0];
     const todayEntries = entries.filter(entry => 
@@ -72,11 +80,24 @@ const Index = () => {
         />
         
         {activeTimerId ? (
-          <Button className="clock-button" onClick={handleClockOut}>
-            Clock Out
-          </Button>
+          <div className="flex flex-col items-center">
+            <Button 
+              className="bg-red-500 hover:bg-red-600 text-white rounded-full px-8 py-6"
+              onClick={handleClockOut}
+            >
+              Clock Out
+            </Button>
+            {activeEntry && (
+              <div className="mt-4 text-sm text-muted-foreground">
+                Working since {formatTime(activeEntry.timeIn)}
+              </div>
+            )}
+          </div>
         ) : (
-          <Button className="clock-button" onClick={handleClockIn}>
+          <Button 
+            className="bg-black hover:bg-black/80 text-white dark:bg-white dark:text-black dark:hover:bg-white/80 rounded-full px-8 py-6"
+            onClick={handleClockIn}
+          >
             Clock In
           </Button>
         )}
@@ -99,7 +120,12 @@ const Index = () => {
       <div className="section-container mb-8">
         <div className="flex justify-between items-center mb-6">
           <h2 className="section-title mb-0">Recent Entries</h2>
-          <Button variant="outline" onClick={() => toast.info('This feature will be available in the next update')}>
+          <Button 
+            variant="outline" 
+            onClick={() => setDeleteConfirmOpen(true)}
+            className="flex items-center gap-2"
+          >
+            <Trash2 className="h-4 w-4" />
             Delete All Entries
           </Button>
         </div>
@@ -132,11 +158,7 @@ const Index = () => {
                       className="h-8 w-8" 
                       onClick={() => deleteEntry(entry.id)}
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
-                        <path d="M3 6h18"></path>
-                        <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
-                        <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
-                      </svg>
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>
@@ -174,6 +196,25 @@ const Index = () => {
             </Button>
             <Button onClick={submitClockOut}>
               Clock Out
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Delete All Entries</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete all time entries? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-4">
+            <Button variant="outline" onClick={() => setDeleteConfirmOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={confirmDeleteAll}>
+              Delete All
             </Button>
           </DialogFooter>
         </DialogContent>

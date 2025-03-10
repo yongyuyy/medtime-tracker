@@ -49,12 +49,12 @@ const TimeDisplay: React.FC<TimeDisplayProps> = ({
 
   return (
     <div className={cn("flex items-center justify-center", className)}>
-      <div className="time-display font-mono">
-        <span>{timeDisplay.substring(0, 2)}</span>
-        <span className="time-separator">:</span>
-        <span>{timeDisplay.substring(3, 5)}</span>
-        <span className="time-separator">:</span>
-        <span>{timeDisplay.substring(6, 8)}</span>
+      <div className="time-display font-mono text-7xl tracking-[0.3em] font-bold">
+        <span className="tabular-nums">{timeDisplay.substring(0, 2)}</span>
+        <span className="time-separator mx-1">:</span>
+        <span className="tabular-nums">{timeDisplay.substring(3, 5)}</span>
+        <span className="time-separator mx-1">:</span>
+        <span className="tabular-nums">{timeDisplay.substring(6, 8)}</span>
       </div>
     </div>
   );

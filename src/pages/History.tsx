@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { format, parseISO } from 'date-fns';
-import { CalendarIcon, Edit2, Trash2 } from 'lucide-react';
+import { CalendarIcon, Edit2, Plus, Trash2 } from 'lucide-react';
 import { useTimeEntries } from '@/context/TimeEntriesContext';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -13,6 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { formatTime, formatDurationCompact } from '@/utils/timeUtils';
 import { TimeEntry } from '@/types';
 import { cn } from '@/lib/utils';
+import ManualEntryDialog from '@/components/ui-components/ManualEntryDialog';
 
 const History = () => {
   const { entries, updateEntry, deleteEntry } = useTimeEntries();
@@ -35,7 +36,11 @@ const History = () => {
         entries.filter(entry => entry.date === selectedDateStr)
       );
     } else {
-      setFilteredEntries(entries);
+      const sortedEntries = [...entries].sort((a, b) => {
+        // Sort by date descending
+        return new Date(b.date).getTime() - new Date(a.date).getTime();
+      });
+      setFilteredEntries(sortedEntries);
     }
   }, [entries, selectedDate]);
   
@@ -76,8 +81,8 @@ const History = () => {
       <h1 className="page-title">History</h1>
       <p className="page-subtitle">View and manage your time entries</p>
       
-      {/* Date filter */}
-      <div className="mb-6">
+      {/* Date filter and add entry button */}
+      <div className="flex justify-between items-center mb-6">
         <Popover>
           <PopoverTrigger asChild>
             <Button
@@ -88,7 +93,7 @@ const History = () => {
               )}
             >
               <CalendarIcon className="mr-2 h-4 w-4" />
-              {selectedDate ? format(selectedDate, 'PPP') : <span>Pick a date</span>}
+              {selectedDate ? format(selectedDate, 'PPP') : <span>All entries</span>}
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0" align="start">
@@ -106,12 +111,14 @@ const History = () => {
           <Button
             variant="ghost"
             size="sm"
-            className="ml-2"
+            className="mr-auto ml-2"
             onClick={() => setSelectedDate(undefined)}
           >
-            Clear
+            Clear filter
           </Button>
         )}
+        
+        <ManualEntryDialog />
       </div>
       
       {/* Entries table */}
@@ -139,10 +146,10 @@ const History = () => {
                       {formatTime(entry.timeIn)}
                     </td>
                     <td className="p-4">
-                      {formatTime(entry.timeOut)}
+                      {entry.timeOut ? formatTime(entry.timeOut) : 'In progress'}
                     </td>
                     <td className="p-4">
-                      {formatDurationCompact(entry.duration)}
+                      {entry.duration ? formatDurationCompact(entry.duration) : '-'}
                     </td>
                     <td className="p-4 max-w-xs truncate">
                       {entry.notes || '-'}
