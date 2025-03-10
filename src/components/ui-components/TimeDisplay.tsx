@@ -7,20 +7,32 @@ interface TimeDisplayProps {
   isRunning?: boolean;
   startTime?: string; // HH:MM format
   className?: string;
+  showLocalTime?: boolean;
 }
 
 const TimeDisplay: React.FC<TimeDisplayProps> = ({ 
   isRunning = false, 
   startTime,
-  className 
+  className,
+  showLocalTime = false
 }) => {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [timeDisplay, setTimeDisplay] = useState('00:00:00');
+  const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
     let intervalId: number;
 
-    if (isRunning && startTime) {
+    if (showLocalTime) {
+      // Update current time every second
+      intervalId = window.setInterval(() => {
+        setCurrentTime(new Date());
+        const hours = currentTime.getHours().toString().padStart(2, '0');
+        const minutes = currentTime.getMinutes().toString().padStart(2, '0');
+        const seconds = currentTime.getSeconds().toString().padStart(2, '0');
+        setTimeDisplay(`${hours}:${minutes}:${seconds}`);
+      }, 1000);
+    } else if (isRunning && startTime) {
       // Parse the start time
       const [hours, minutes] = startTime.split(':').map(Number);
       const startDate = new Date();
@@ -41,11 +53,24 @@ const TimeDisplay: React.FC<TimeDisplayProps> = ({
     return () => {
       if (intervalId) clearInterval(intervalId);
     };
-  }, [isRunning, startTime]);
+  }, [isRunning, startTime, showLocalTime]);
 
   useEffect(() => {
-    setTimeDisplay(formatTimeDisplay(elapsedSeconds));
-  }, [elapsedSeconds]);
+    if (!showLocalTime) {
+      setTimeDisplay(formatTimeDisplay(elapsedSeconds));
+    }
+  }, [elapsedSeconds, showLocalTime]);
+
+  // Set initial local time display on mount
+  useEffect(() => {
+    if (showLocalTime) {
+      const now = new Date();
+      const hours = now.getHours().toString().padStart(2, '0');
+      const minutes = now.getMinutes().toString().padStart(2, '0');
+      const seconds = now.getSeconds().toString().padStart(2, '0');
+      setTimeDisplay(`${hours}:${minutes}:${seconds}`);
+    }
+  }, [showLocalTime]);
 
   return (
     <div className={cn("flex items-center justify-center", className)}>

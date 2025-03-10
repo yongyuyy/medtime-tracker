@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
-import { format, parseISO } from 'date-fns';
-import { CalendarIcon, Edit2, Plus, Trash2 } from 'lucide-react';
+import { format, parseISO, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
+import { CalendarIcon, Edit2, Plus, Trash2, CalendarRange } from 'lucide-react';
 import { useTimeEntries } from '@/context/TimeEntriesContext';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -14,11 +14,15 @@ import { formatTime, formatDurationCompact } from '@/utils/timeUtils';
 import { TimeEntry } from '@/types';
 import { cn } from '@/lib/utils';
 import ManualEntryDialog from '@/components/ui-components/ManualEntryDialog';
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { DateRange } from 'react-day-picker';
 
 const History = () => {
   const { entries, updateEntry, deleteEntry } = useTimeEntries();
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [filteredEntries, setFilteredEntries] = useState<TimeEntry[]>([]);
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
+  const [filterType, setFilterType] = useState<'single' | 'range' | 'all'>('all');
   
   // Edit entry state
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -28,21 +32,82 @@ const History = () => {
   const [editTimeOut, setEditTimeOut] = useState('');
   const [editNotes, setEditNotes] = useState('');
   
-  // Filter entries by selected date
+  // Filter entries based on selected filter type
   useEffect(() => {
-    if (selectedDate) {
+    let filtered = [...entries];
+    
+    if (filterType === 'single' && selectedDate) {
       const selectedDateStr = format(selectedDate, 'yyyy-MM-dd');
-      setFilteredEntries(
-        entries.filter(entry => entry.date === selectedDateStr)
-      );
-    } else {
-      const sortedEntries = [...entries].sort((a, b) => {
-        // Sort by date descending
-        return new Date(b.date).getTime() - new Date(a.date).getTime();
+      filtered = entries.filter(entry => entry.date === selectedDateStr);
+    } 
+    else if (filterType === 'range' && dateRange?.from) {
+      filtered = entries.filter(entry => {
+        const entryDate = new Date(entry.date);
+        if (dateRange.from && dateRange.to) {
+          return isWithinInterval(entryDate, { start: dateRange.from, end: dateRange.to });
+        } else if (dateRange.from) {
+          // If only from date is selected, match that exact date
+          return format(entryDate, 'yyyy-MM-dd') === format(dateRange.from, 'yyyy-MM-dd');
+        }
+        return true;
       });
-      setFilteredEntries(sortedEntries);
     }
-  }, [entries, selectedDate]);
+    
+    // Sort filtered entries by date (newest first)
+    const sortedEntries = filtered.sort((a, b) => {
+      // Sort by date descending
+      return new Date(b.date).getTime() - new Date(a.date).getTime();
+    });
+    
+    setFilteredEntries(sortedEntries);
+  }, [entries, selectedDate, dateRange, filterType]);
+  
+  // Handle quick filter selection
+  const handleQuickFilter = (type: string) => {
+    const today = new Date();
+    
+    switch (type) {
+      case 'today':
+        setFilterType('single');
+        setSelectedDate(today);
+        setDateRange(undefined);
+        break;
+      case 'thisWeek':
+        setFilterType('range');
+        setDateRange({
+          from: startOfWeek(today, { weekStartsOn: 1 }),
+          to: endOfWeek(today, { weekStartsOn: 1 })
+        });
+        setSelectedDate(undefined);
+        break;
+      case 'thisMonth':
+        setFilterType('range');
+        setDateRange({
+          from: startOfMonth(today),
+          to: endOfMonth(today)
+        });
+        setSelectedDate(undefined);
+        break;
+      case 'all':
+        setFilterType('all');
+        setSelectedDate(undefined);
+        setDateRange(undefined);
+        break;
+    }
+  };
+  
+  // Get display text for filter
+  const getFilterDisplayText = () => {
+    if (filterType === 'single' && selectedDate) {
+      return format(selectedDate, 'PPP');
+    } else if (filterType === 'range' && dateRange?.from) {
+      if (dateRange.to) {
+        return `${format(dateRange.from, 'PPP')} to ${format(dateRange.to, 'PPP')}`;
+      }
+      return format(dateRange.from, 'PPP');
+    }
+    return 'All entries';
+  };
   
   // Handle edit button click
   const handleEditClick = (entry: TimeEntry) => {
@@ -82,41 +147,127 @@ const History = () => {
       <p className="page-subtitle">View and manage your time entries</p>
       
       {/* Date filter and add entry button */}
-      <div className="flex justify-between items-center mb-6">
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              className={cn(
-                "justify-start text-left font-normal",
-                !selectedDate && "text-muted-foreground"
-              )}
-            >
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              {selectedDate ? format(selectedDate, 'PPP') : <span>All entries</span>}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <Calendar
-              mode="single"
-              selected={selectedDate}
-              onSelect={setSelectedDate}
-              initialFocus
-              className="p-3 pointer-events-auto"
-            />
-          </PopoverContent>
-        </Popover>
-        
-        {selectedDate && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="mr-auto ml-2"
-            onClick={() => setSelectedDate(undefined)}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+          <Select
+            value={filterType}
+            onValueChange={(value: 'single' | 'range' | 'all') => {
+              setFilterType(value);
+              if (value === 'all') {
+                setSelectedDate(undefined);
+                setDateRange(undefined);
+              }
+            }}
           >
-            Clear filter
-          </Button>
-        )}
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Filter type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All entries</SelectItem>
+              <SelectItem value="single">Single date</SelectItem>
+              <SelectItem value="range">Date range</SelectItem>
+            </SelectContent>
+          </Select>
+          
+          {filterType === 'single' && (
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "justify-start text-left font-normal",
+                    !selectedDate && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {selectedDate ? format(selectedDate, 'PPP') : <span>Select date</span>}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={setSelectedDate}
+                  initialFocus
+                  className="p-3 pointer-events-auto"
+                />
+              </PopoverContent>
+            </Popover>
+          )}
+          
+          {filterType === 'range' && (
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "justify-start text-left font-normal",
+                    !dateRange?.from && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarRange className="mr-2 h-4 w-4" />
+                  {dateRange?.from ? (
+                    dateRange.to ? (
+                      <>
+                        {format(dateRange.from, 'LLL dd, y')} - {format(dateRange.to, 'LLL dd, y')}
+                      </>
+                    ) : (
+                      format(dateRange.from, 'LLL dd, y')
+                    )
+                  ) : (
+                    <span>Select date range</span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="range"
+                  selected={dateRange}
+                  onSelect={setDateRange}
+                  numberOfMonths={2}
+                  initialFocus
+                  className="p-3 pointer-events-auto"
+                />
+              </PopoverContent>
+            </Popover>
+          )}
+          
+          <div className="flex gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleQuickFilter('today')}
+              className={cn(filterType === 'single' && selectedDate && format(selectedDate, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd') && "bg-slate-100 dark:bg-slate-800")}
+            >
+              Today
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleQuickFilter('thisWeek')}
+              className={cn(filterType === 'range' && dateRange?.from && format(dateRange.from, 'yyyy-MM-dd') === format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd') && "bg-slate-100 dark:bg-slate-800")}
+            >
+              This Week
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleQuickFilter('thisMonth')}
+              className={cn(filterType === 'range' && dateRange?.from && format(dateRange.from, 'yyyy-MM-dd') === format(startOfMonth(new Date()), 'yyyy-MM-dd') && "bg-slate-100 dark:bg-slate-800")}
+            >
+              This Month
+            </Button>
+            {(filterType !== 'all' || selectedDate || dateRange) && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleQuickFilter('all')}
+              >
+                Clear
+              </Button>
+            )}
+          </div>
+        </div>
         
         <ManualEntryDialog />
       </div>
@@ -177,8 +328,8 @@ const History = () => {
               ) : (
                 <tr>
                   <td colSpan={6} className="p-8 text-center text-muted-foreground">
-                    {selectedDate 
-                      ? 'No entries found for the selected date' 
+                    {filterType !== 'all'
+                      ? 'No entries found for the selected date(s)' 
                       : 'No entries found. Start tracking your time!'}
                   </td>
                 </tr>

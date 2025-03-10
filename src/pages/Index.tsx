@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { useTimeEntries } from '@/context/TimeEntriesContext';
@@ -73,11 +72,18 @@ const Index = () => {
           {format(currentTime, 'EEEE, MMMM d, yyyy')}
         </div>
         
-        <TimeDisplay 
-          isRunning={!!activeTimerId} 
-          startTime={activeEntry?.timeIn}
-          className="mb-8"
-        />
+        {activeTimerId ? (
+          <TimeDisplay 
+            isRunning={true} 
+            startTime={activeEntry?.timeIn}
+            className="mb-8"
+          />
+        ) : (
+          <TimeDisplay 
+            showLocalTime={true}
+            className="mb-8"
+          />
+        )}
         
         {activeTimerId ? (
           <div className="flex flex-col items-center">

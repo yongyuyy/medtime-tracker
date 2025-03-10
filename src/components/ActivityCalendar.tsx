@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { format, addDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth, getDate, getMonth, getYear, isSameDay, parse, addMonths, subMonths, addYears, subYears } from 'date-fns';
 import { Button } from '@/components/ui/button';
@@ -22,30 +21,24 @@ const ActivityCalendar: React.FC<ActivityCalendarProps> = ({ className }) => {
   const [dateRange, setDateRange] = useState('');
   const [daysInView, setDaysInView] = useState<Date[]>([]);
   
-  // Update days in view when current date or view mode changes
   useEffect(() => {
     if (viewMode === 'week') {
-      // Week view: Show days of the current week
-      const start = startOfWeek(currentDate, { weekStartsOn: 1 }); // Monday
+      const start = startOfWeek(currentDate, { weekStartsOn: 1 });
       const days = Array.from({ length: 7 }, (_, i) => addDays(start, i));
       setDaysInView(days);
       
-      // Update date range display
       const startDate = format(days[0], 'MMM d');
       const endDate = format(days[6], 'MMM d');
       setDateRange(`${startDate} - ${endDate}`);
     } else if (viewMode === 'month') {
-      // Month view: Show entire month
       const monthStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
       const monthEnd = endOfMonth(currentDate);
       setDateRange(format(currentDate, 'MMMM yyyy'));
     } else if (viewMode === 'year') {
-      // Year view: Show entire year
       setDateRange(format(currentDate, 'yyyy'));
     }
   }, [currentDate, viewMode]);
   
-  // Navigate to previous period
   const goToPrevious = () => {
     if (viewMode === 'week') {
       setCurrentDate(prev => addDays(prev, -7));
@@ -56,7 +49,6 @@ const ActivityCalendar: React.FC<ActivityCalendarProps> = ({ className }) => {
     }
   };
   
-  // Navigate to next period
   const goToNext = () => {
     if (viewMode === 'week') {
       setCurrentDate(prev => addDays(prev, 7));
@@ -67,24 +59,20 @@ const ActivityCalendar: React.FC<ActivityCalendarProps> = ({ className }) => {
     }
   };
   
-  // Go to current period
   const goToToday = () => {
     setCurrentDate(new Date());
   };
   
-  // Find entries for a specific day
   const getEntriesForDay = (day: Date): TimeEntry[] => {
     const formattedDate = format(day, 'yyyy-MM-dd');
     return entries.filter(entry => entry.date === formattedDate);
   };
   
-  // Get duration of entries for a day
   const getDurationForDay = (day: Date): number => {
     const entriesForDay = getEntriesForDay(day);
     return entriesForDay.reduce((total, entry) => total + entry.duration, 0);
   };
   
-  // Get color class based on duration
   const getColorForDuration = (minutes: number): string => {
     if (minutes === 0) return '';
     if (minutes < 240) return 'bg-emerald-100 dark:bg-emerald-900/30';
@@ -92,7 +80,6 @@ const ActivityCalendar: React.FC<ActivityCalendarProps> = ({ className }) => {
     return 'bg-emerald-500 dark:bg-emerald-400';
   };
 
-  // Render week view
   const renderWeekView = () => {
     return (
       <>
@@ -126,14 +113,12 @@ const ActivityCalendar: React.FC<ActivityCalendarProps> = ({ className }) => {
         </div>
         
         <div className="grid grid-cols-7 gap-4 text-center">
-          {/* Day names */}
           {daysInView.map((day, index) => (
             <div key={`day-name-${index}`} className="text-sm font-medium">
               {format(day, 'EEE')}
             </div>
           ))}
           
-          {/* Day numbers */}
           {daysInView.map((day, index) => {
             const isToday = isSameDay(day, new Date());
             const dayEntries = getEntriesForDay(day);
@@ -174,7 +159,6 @@ const ActivityCalendar: React.FC<ActivityCalendarProps> = ({ className }) => {
     );
   };
   
-  // Render month view
   const renderMonthView = () => {
     const monthStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
     const monthEnd = endOfMonth(currentDate);
@@ -182,7 +166,6 @@ const ActivityCalendar: React.FC<ActivityCalendarProps> = ({ className }) => {
     const startDate = startOfWeek(monthStart, { weekStartsOn: 1 });
     const endDate = endOfWeek(monthEnd, { weekStartsOn: 1 });
     
-    // Calculate all visible days (including those from prev/next months)
     const dateArray: Date[] = [];
     let currentDay = startDate;
     
@@ -191,7 +174,6 @@ const ActivityCalendar: React.FC<ActivityCalendarProps> = ({ className }) => {
       currentDay = addDays(currentDay, 1);
     }
     
-    // Group days into weeks
     const weeks: Date[][] = [];
     for (let i = 0; i < dateArray.length; i += 7) {
       weeks.push(dateArray.slice(i, i + 7));
@@ -313,7 +295,7 @@ const ActivityCalendar: React.FC<ActivityCalendarProps> = ({ className }) => {
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <Button
-              variant="black"
+              variant="default"
               className="rounded-full"
               onClick={goToToday}
             >
