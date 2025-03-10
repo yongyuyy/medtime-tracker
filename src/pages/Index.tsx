@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { useTimeEntries } from '@/context/TimeEntriesContext';
@@ -10,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
+import { formatTime, formatDurationCompact } from '@/utils/timeUtils';
 
 const Index = () => {
   const { entries, activeTimerId, startTimer, stopTimer, deleteEntry } = useTimeEntries();
@@ -17,15 +17,12 @@ const Index = () => {
   const [isClockOutDialogOpen, setIsClockOutDialogOpen] = useState(false);
   const [clockOutNotes, setClockOutNotes] = useState('');
   
-  // Get the active entry if timer is running
   const activeEntry = entries.find(entry => entry.id === activeTimerId);
   
-  // Get recent entries (excluding the active one)
   const recentEntries = entries
     .filter(entry => entry.id !== activeTimerId)
     .slice(0, 3);
   
-  // Update current time every second
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentTime(new Date());
@@ -34,24 +31,20 @@ const Index = () => {
     return () => clearInterval(interval);
   }, []);
   
-  // Handle clock in
   const handleClockIn = () => {
     startTimer();
   };
   
-  // Handle clock out
   const handleClockOut = () => {
     setIsClockOutDialogOpen(true);
   };
   
-  // Submit clock out with notes
   const submitClockOut = () => {
     stopTimer(clockOutNotes);
     setClockOutNotes('');
     setIsClockOutDialogOpen(false);
   };
   
-  // Calculate hours worked today
   const getTodayHours = () => {
     const today = new Date().toISOString().split('T')[0];
     const todayEntries = entries.filter(entry => 
@@ -64,7 +57,6 @@ const Index = () => {
   
   return (
     <div className="page-container">
-      {/* Timer Display */}
       <div className="section-container mb-8 flex flex-col items-center py-10">
         <div className="mb-4 text-center text-xs text-muted-foreground uppercase tracking-wider">
           TODAY
@@ -90,7 +82,6 @@ const Index = () => {
         )}
       </div>
       
-      {/* Today's Summary */}
       <div className="section-container mb-8">
         <div className="flex justify-between items-center mb-6">
           <h2 className="section-title mb-0">Today's Summary</h2>
@@ -102,12 +93,9 @@ const Index = () => {
             <div className="text-sm text-muted-foreground mb-2">Hours Worked</div>
             <div className="text-4xl font-bold">{getTodayHours()}</div>
           </div>
-          
-          {/* Additional summary metrics can be added here */}
         </div>
       </div>
       
-      {/* Recent Entries */}
       <div className="section-container mb-8">
         <div className="flex justify-between items-center mb-6">
           <h2 className="section-title mb-0">Recent Entries</h2>
@@ -162,10 +150,8 @@ const Index = () => {
         )}
       </div>
       
-      {/* Activity Calendar */}
       <ActivityCalendar />
       
-      {/* Clock Out Dialog */}
       <Dialog open={isClockOutDialogOpen} onOpenChange={setIsClockOutDialogOpen}>
         <DialogContent className="sm:max-w-[425px] animate-scale-up">
           <DialogHeader>
